@@ -1,0 +1,4 @@
+repositories:
+  VexRiscv:
+    url: https://github.com/SpinalHDL/VexRiscv.git
+    commit: 35402a2bde511e9bf73833ccbb14b1e43486de64
