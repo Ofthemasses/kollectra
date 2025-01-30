@@ -1,15 +1,15 @@
 REPO_URL := $(shell yq '.repositories.VexRiscv.url' config.yaml)
 COMMIT_HASH := $(shell yq '.repositories.VexRiscv.commit' config.yaml)
-LIB_DIR := lib
-VEX_DIR := $(LIB_DIR)/bin/VexRiscv
+SCALA_LIB_DIR := vexcores/lib
+VEX_DIR := $(SCALA_LIB_DIR)/VexRiscv
 
 .PHONY: init clean
 
-init: generate_lib_dirs shallow_clone checkout
+init: generate_scala_lib_dirs shallow_clone checkout build_kollectra_core
 
-generate_lib_dirs:
+generate_scala_lib_dirs:
 	@echo "Creating lib directory..."
-	mkdir -p $(LIB_DIR)/bin
+	mkdir -p $(SCALA_LIB_DIR)
 	@echo "lib directory has been created."
 
 shallow_clone:
@@ -27,7 +27,11 @@ checkout:
 	cd $(VEX_DIR) && git checkout FETCH_HEAD
 	@echo "Repository $(VEX_DIR) is now at commit $(COMMIT_HASH)."
 
+build_kollectra_core:
+	cd vexcores; \
+	sbt "runMain kollectra.cores.GenKollectraCore";
+
 clean:
-	@echo "Removing $(LIB_DIR)..."
-	rm -rf $(LIB_DIR)
-	@echo "$(LIB_DIR) has been removed."
+	@echo "Removing $(SCALA_LIB_DIR)..."
+	rm -r $(SCALA_LIB_DIR)
+	@echo "$(SCALA_LIB_DIR) has been removed."
