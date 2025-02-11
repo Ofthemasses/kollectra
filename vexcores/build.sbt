@@ -1,5 +1,3 @@
-ThisBuild / organization := "org.codeberg.kollectra"
-
 lazy val vexCoreConfig = ProjectConfig.load().get("vexcores")
 
 lazy val spinalVersion = vexCoreConfig.get("spinalVersion").asText
