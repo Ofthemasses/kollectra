@@ -49,11 +49,13 @@ object GenKollectraCore extends App{
         new BranchPlugin(
           earlyBranch = false,
           catchAddressMisaligned = false
-        ),
-        new YamlPlugin("cpu0.yaml")
+        )
       )
     )
   )
 
-  SpinalVerilog(cpu())
+  SpinalConfig(
+    targetDirectory = "../generated",
+    mode = Verilog
+  ).generate(cpu())
 }
