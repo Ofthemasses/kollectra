@@ -1,33 +1,25 @@
 REPO_URL := $(shell yq '.repositories.VexRiscv.url' config.yaml)
 COMMIT_HASH := $(shell yq '.repositories.VexRiscv.commit' config.yaml)
-LIB_DIR := lib
-VEX_DIR := $(LIB_DIR)/bin/VexRiscv
+SCALA_LIB_DIR := vexcores/lib
+VEX_DIR := $(SCALA_LIB_DIR)/VexRiscv
 
-.PHONY: init clean
+.PHONY: init build_kollectra_core clean build-docker run-docker
 
-init: generate_lib_dirs shallow_clone checkout
+init: build_kollectra_core
 
-generate_lib_dirs:
-	@echo "Creating lib directory..."
-	mkdir -p $(LIB_DIR)/bin
-	@echo "lib directory has been created."
+dev: build-docker run-docker
 
-shallow_clone:
-	@if [ ! -d "$(VEX_DIR)" ]; then \
-	  echo "Cloning repository from $(VEX_DIR) at specified commit into $(VEX_DIR)..."; \
-	  git init $(VEX_DIR); \
-	  cd $(VEX_DIR) && git remote add origin $(REPO_URL); \
-	  git fetch --depth 1 origin $(COMMIT_HASH); \
-	else \
-	  echo "Repository already cloned at $(VEX_DIR)."; \
-	fi
-
-checkout:
-	@echo "Checking out commit $(COMMIT_HASH) in $(VEX_DIR)..."
-	cd $(VEX_DIR) && git checkout FETCH_HEAD
-	@echo "Repository $(VEX_DIR) is now at commit $(COMMIT_HASH)."
+build_kollectra_core:
+	cd vexcores; \
+	sbt "runMain kollectra.cores.GenKollectraCore";
 
 clean:
-	@echo "Removing $(LIB_DIR)..."
-	rm -rf $(LIB_DIR)
-	@echo "$(LIB_DIR) has been removed."
+	@echo "Removing $(SCALA_LIB_DIR)..."
+	rm -r $(SCALA_LIB_DIR)
+	@echo "$(SCALA_LIB_DIR) has been removed."
+
+build-docker:
+	docker build -t kollectra-dev .
+
+run-docker:
+	docker run -it --rm -v $(PWD):/project kollectra-dev

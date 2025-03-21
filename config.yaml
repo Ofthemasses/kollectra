@@ -1,4 +1,6 @@
-repositories:
-  VexRiscv:
+vexcores:
+  spinalVersion: 1.10.2a
+  scalaVersion: 2.12.18
+  vexriscv:
     url: https://github.com/SpinalHDL/VexRiscv.git
-    commit: 35402a2bde511e9bf73833ccbb14b1e43486de64
+    commit: 9b40a058375ca1bab623d1ecb5e0364b0ac280dc

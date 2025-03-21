@@ -47,10 +47,10 @@ these permitted categories of work to ensure the project remains guided.
 
 ## Project Philosophy
 
-1. Definitions - Community: The contributors, (hardware) open-source community
+### 1. Definitions - Community: The contributors, (hardware) open-source community
 and users of the project
 
-2. Objectives
+### 2. Objectives
 
 - Develop a project that meaningfully investigates and enriches the community.
 - Prioritize utilizing open source for the free distribution of information and
@@ -62,20 +62,19 @@ democratic processes, such as defining criteria for verifying a community
 member's vote.  - Ensure that any fabrication of the project adheres to ethical
 standards.
 
-3. Issues and Contributions
+### 3. Issues and Contributions
 
 All GitHub and CodeBerg issues should connect back to or reference these core
 topics. This must be completed by providing a link to a valid version of this
 document, and referencing a topic by number(s).
 
-3.1 Importance of Open Source in FPGA Design 3.1.1 Investigates why open source
-is critical.  3.1.2 Investigates why open source is critical in FPGA design.
+#### 3.1. Importance of Open Source in FPGA Design
+##### 3.1.1 Investigates why open source is critical.  
+##### 3.1.2 Investigates why open source is critical in FPGA design.
 
-3.2 Investing in the Culture of Open Source Projects 3.2.1 Improves upon
-existing, or implements new features to open-source development.  3.2.2
-Improves upon existing, or implements new features to open-source development
-in FPGA design.
+#### 3.2 Investing in the Culture of Open Source Projects 
+##### 3.2.1. Improves upon existing, or implements new features to open-source development.
+##### 3.2.2. Improves upon existing, or implements new features to open-source development in FPGA design.
 
-3.3 Producing a Product 3.3.1 Contributes to the realisation of a FPGA game
-console, without conflicting with 2, 3.1 and 3.2.
-
+#### 3.3. Producing a Product 
+##### 3.3.1. Contributes to the realisation of a FPGA game console, without conflicting with 2, 3.1 and 3.2.

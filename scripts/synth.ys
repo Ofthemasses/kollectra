@@ -1,0 +1,8 @@
+read_verilog src/*.v
+read_verilog generated/*.v
+
+prep -top Top
+
+select -module VexRiscv 
+
+write_json -selected build/synth.json 
