@@ -15,7 +15,7 @@ module w9825g6kh_6_controller(
     output [12:0] sdram_a, // Address Lines
     output [1:0] sdram_ba, // Bank Address Lines
     output [1:0] sdram_dqm, // LDQM HDQM
-    output [15:0] sdram_d, // Data Lines
+    inout [15:0] sdram_d, // Data Lines
 );
 
 // 166Mhz CLK (CL*=3)
