@@ -63,6 +63,15 @@ localparam CMD_BA = 4'b0011, // Bank Active
            S_REFRESH7 = 4'b1011,
            S_REFRESH8 = 4'b1100,
            S_MODE_REGISTER_SET = 4'b1101;
+           MRS_BURST_1 = 3'b000;
+           MRS_BURST_2 = 3'b001;
+           MRS_BURST_4 = 3'b010;
+           MRS_BURST_8 = 3'b011;
+           MRS_BURST_FP = 3'b111;
+           MRS_AM_SEQ = 0;
+           MRS_AM_INT = 1;
+           MRS_SWM_BRBW = 0;
+           MRS_SWM_BRSW = 1;
 
 reg [3:0] state_q, state_d = S_OFF;
 reg [1:0] next_state_q, next_state_d= S_OFF;
@@ -71,6 +80,23 @@ reg [16:0] delay_count_q, delay_count_d = 0;
 reg [3:0] cmd_q, cmd_d = CMD_NOP;
 reg cke_q, cke_d = 0;
 reg [1:0] dqm_q, dqm_d = 0;
+reg [12:0] sdram_a_q, sdram_a_d = 0;
+reg [1:0] sdram_ba_q, sdram_ba_d = 0;
+
+function  [12:0] mode_reg_set;
+  input [2:0] burst_length;   // A2-A0
+  input       burst_type;     // A3
+  input       write_burst;    // A9
+
+  begin
+    sdram_a_d = 13'b0;
+    sdram_ba_d = 2'b0;
+    sdram_a_d[2:0] = burst_length;
+    sdram_a_d[3]   = burst_type;
+    sdram_a_d[6:4] = 3'b001;
+    sdram_a_d[9]   = write_burst;
+  end
+endfunction
 
 assign sdram_clk = clk, // CK
        sdram_cke = cke_q, // CKE
@@ -78,8 +104,8 @@ assign sdram_clk = clk, // CK
        sdram_rasn = cmd_q[2], // RAS
        sdram_casn = cmd_q[1], // CAS
        sdram_wen = cmd_q[0], // WE
-       [12:0] sdram_a = 0 // Address Lines
-       [1:0] sdram_ba, = 0 // Bank Address Lines
+       [12:0] sdram_a = sdram_a_q // Address Lines
+       [1:0] sdram_ba, = sdram_ba_q // Bank Address Lines
        [1:0] sdram_dqm, = 0 // LDQM HDQM
        [15:0] sdram_d; = 0 // Data Lines
 
@@ -89,6 +115,8 @@ always @* begin
     next_state_d = next_state_q;
     cke_d = cke_q;
     dqm_d = dqm_q;
+    sdram_a_d = sdram_a_q;
+    sdram_ba_d = sdram_ba_q;
     
     case(state_q)
         S_DELAY: begin
@@ -123,7 +151,11 @@ always @* begin
             cmd_d = CMD_AR;
             state_d = S_DESELECT_DELAY;
             delay_count_d = T_RC;
-            next_state_d = next_state_d + 1;
+            next_state_d = S_MODE_REGISTER_SET;
+        end
+        S_MODE_REGISTER_SET: begin
+            cmd_d = CMD_MRS;
+            mode_reg_set(MRS_BURST_8, MRS_AM_INT, MRS_SWM_BRBW);
         end
         S_MODE_REGISTER_SET: begin
         end
@@ -139,6 +171,8 @@ always @(posedge clk) begin
     cmd_q <= cmd_d;
     cke_q <= cke_d;
     dqm_q <= dqm_d;
+    sdram_a_q <= sdram_a_d;
+    sdram_ba_q <= sdram_ba_d;
     next_state_q <= next_state_d;
     delay_count_q <= delay_count_d;
 end
