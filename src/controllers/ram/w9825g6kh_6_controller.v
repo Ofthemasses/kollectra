@@ -4,7 +4,7 @@
 module w9825g6kh_6_controller(
     input clk,
     input power,
-    output reg ready,
+    output ready,
 
     output sdram_clk, // CK
     output sdram_cke, // CKE
@@ -15,7 +15,7 @@ module w9825g6kh_6_controller(
     output [12:0] sdram_a, // Address Lines
     output [1:0] sdram_ba, // Bank Address Lines
     output [1:0] sdram_dqm, // LDQM HDQM
-    inout [15:0] sdram_d, // Data Lines
+    inout [15:0] sdram_d // Data Lines
 );
 
 // 166Mhz CLK (CL*=3)
@@ -33,7 +33,7 @@ localparam CMD_BA = 4'b0011, // Bank Active
            A10_WAP = 1, // Write with Auto-Precharge
            CMD_R = 4'b0101, // Write (+ Auto-Precharge)
            A10_R = 0, // Write
-           A10_RAP = 1 // Write with Auto-Precharge
+           A10_RAP = 1, // Write with Auto-Precharge
            CMD_MRS = 4'b0000, // Mode Register Set
            CMD_NOP = 4'b0111, // No Operation
            CMD_BS = 4'b0110, // Burst Stop
@@ -62,21 +62,23 @@ localparam CMD_BA = 4'b0011, // Bank Active
            S_REFRESH6 = 4'b1010,
            S_REFRESH7 = 4'b1011,
            S_REFRESH8 = 4'b1100,
-           S_MODE_REGISTER_SET = 4'b1101;
-           MRS_BURST_1 = 3'b000;
-           MRS_BURST_2 = 3'b001;
-           MRS_BURST_4 = 3'b010;
-           MRS_BURST_8 = 3'b011;
-           MRS_BURST_FP = 3'b111;
-           MRS_AM_SEQ = 0;
-           MRS_AM_INT = 1;
-           MRS_SWM_BRBW = 0;
+           S_MODE_REGISTER_SET = 4'b1101,
+           S_IDLE = 4'b1110,
+           MRS_BURST_1 = 3'b000,
+           MRS_BURST_2 = 3'b001,
+           MRS_BURST_4 = 3'b010,
+           MRS_BURST_8 = 3'b011,
+           MRS_BURST_FP = 3'b111,
+           MRS_AM_SEQ = 0,
+           MRS_AM_INT = 1,
+           MRS_SWM_BRBW = 0,
            MRS_SWM_BRSW = 1;
 
-reg [3:0] state_q, state_d = S_OFF;
-reg [1:0] next_state_q, next_state_d= S_OFF;
+reg [3:0] state_q, state_d = S_POWERDOWN;
+reg [1:0] next_state_q, next_state_d= S_POWERDOWN;
 reg [16:0] delay_count_q, delay_count_d = 0;
 
+reg ready_q, ready_d = 0;
 reg [3:0] cmd_q, cmd_d = CMD_NOP;
 reg cke_q, cke_d = 0;
 reg [1:0] dqm_q, dqm_d = 0;
@@ -89,25 +91,25 @@ function  [12:0] mode_reg_set;
   input       write_burst;    // A9
 
   begin
-    sdram_a_d = 13'b0;
-    sdram_ba_d = 2'b0;
-    sdram_a_d[2:0] = burst_length;
-    sdram_a_d[3]   = burst_type;
-    sdram_a_d[6:4] = 3'b001;
-    sdram_a_d[9]   = write_burst;
+    mode_reg_set = 13'b0;
+    mode_reg_set[2:0] = burst_length;
+    mode_reg_set[3]   = burst_type;
+    mode_reg_set[6:4] = 3'b001;
+    mode_reg_set[9]   = write_burst;
   end
 endfunction
 
 assign sdram_clk = clk, // CK
+	   ready = ready_q,
        sdram_cke = cke_q, // CKE
        sdram_csn = cmd_q[3], // CS
        sdram_rasn = cmd_q[2], // RAS
        sdram_casn = cmd_q[1], // CAS
        sdram_wen = cmd_q[0], // WE
-       [12:0] sdram_a = sdram_a_q // Address Lines
-       [1:0] sdram_ba, = sdram_ba_q // Bank Address Lines
-       [1:0] sdram_dqm, = 0 // LDQM HDQM
-       [15:0] sdram_d; = 0 // Data Lines
+       sdram_a = sdram_a_q, // Address Lines
+       sdram_ba = sdram_ba_q, // Bank Address Lines
+       sdram_dqm = 0, // LDQM HDQM
+       sdram_d = 0; // Data Lines
 
 always @* begin
     delay_count_d = delay_count_q;
@@ -117,6 +119,7 @@ always @* begin
     dqm_d = dqm_q;
     sdram_a_d = sdram_a_q;
     sdram_ba_d = sdram_ba_q;
+    ready_d = ready_q;
     
     case(state_q)
         S_DELAY: begin
@@ -155,12 +158,18 @@ always @* begin
         end
         S_MODE_REGISTER_SET: begin
             cmd_d = CMD_MRS;
-            mode_reg_set(MRS_BURST_8, MRS_AM_INT, MRS_SWM_BRBW);
+            sdram_a_d = mode_reg_set(MRS_BURST_8, MRS_AM_INT, MRS_SWM_BRBW);
+            sdram_ba_d = 2'b0;
+            state_d = S_DESELECT_DELAY;
+            delay_count_d = T_RC;
+            next_state_d = S_IDLE;
         end
-        S_MODE_REGISTER_SET: begin
-        end
+		S_IDLE: begin
+		    ready_d = 1;	
+		end
         S_POWERDOWN: begin
             cke_d = 0;
+            ready_d = 0;
             state_d = S_INIT;
         end
     endcase
@@ -175,4 +184,6 @@ always @(posedge clk) begin
     sdram_ba_q <= sdram_ba_d;
     next_state_q <= next_state_d;
     delay_count_q <= delay_count_d;
+    ready_q <= ready_d;
 end
+endmodule
