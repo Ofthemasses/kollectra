@@ -170,6 +170,10 @@ always @* begin
         end
 		S_IDLE: begin
 		    ready_d = 1;	
+            cmd_d = CMD_AR;
+            state_d = S_DESELECT_DELAY;
+            delay_count_d = T_RC;
+            next_state_d = S_IDLE;
 		end
         S_POWERDOWN: begin
             cke_d = 0;
