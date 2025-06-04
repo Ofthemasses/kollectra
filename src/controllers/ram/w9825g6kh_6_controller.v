@@ -4,7 +4,9 @@
 module w9825g6kh_6_controller(
     input clk,
     input power,
+	input resetn,
     output ready,
+    output [3:0] currstate,
 
     output sdram_clk, // CK
     output sdram_cke, // CKE
@@ -75,7 +77,7 @@ localparam CMD_BA = 4'b0011, // Bank Active
            MRS_SWM_BRSW = 1;
 
 reg [3:0] state_q, state_d = S_POWERDOWN;
-reg [1:0] next_state_q, next_state_d= S_POWERDOWN;
+reg [3:0] next_state_q, next_state_d= S_POWERDOWN;
 reg [16:0] delay_count_q, delay_count_d = 0;
 
 reg ready_q, ready_d = 0;
@@ -109,12 +111,14 @@ assign sdram_clk = clk, // CK
        sdram_a = sdram_a_q, // Address Lines
        sdram_ba = sdram_ba_q, // Bank Address Lines
        sdram_dqm = 0, // LDQM HDQM
-       sdram_d = 0; // Data Lines
+       sdram_d = 0, // Data Lines
+       currstate = state_q;
 
 always @* begin
     delay_count_d = delay_count_q;
     state_d = state_q;
     next_state_d = next_state_q;
+    cmd_d = cmd_q;
     cke_d = cke_q;
     dqm_d = dqm_q;
     sdram_a_d = sdram_a_q;
@@ -175,15 +179,27 @@ always @* begin
     endcase
 end
 
-always @(posedge clk) begin
-    state_q <= power ? state_d : S_POWERDOWN;
-    cmd_q <= cmd_d;
-    cke_q <= cke_d;
-    dqm_q <= dqm_d;
-    sdram_a_q <= sdram_a_d;
-    sdram_ba_q <= sdram_ba_d;
-    next_state_q <= next_state_d;
-    delay_count_q <= delay_count_d;
-    ready_q <= ready_d;
+always @(posedge clk, negedge resetn) begin
+	if (!resetn) begin
+        state_q <= S_POWERDOWN;
+        cmd_q <= CMD_NOP;
+        cke_q <= 0;
+        dqm_q <= 0;
+        sdram_a_q <= 0;
+        sdram_ba_q <= 0;
+        next_state_q <= S_INIT;
+        delay_count_q <= 0;
+        ready_q <= 0;
+    end else begin
+        state_q <= power ? state_d : S_POWERDOWN;
+        cmd_q <= cmd_d;
+        cke_q <= cke_d;
+        dqm_q <= dqm_d;
+        sdram_a_q <= sdram_a_d;
+        sdram_ba_q <= sdram_ba_d;
+        next_state_q <= next_state_d;
+        delay_count_q <= delay_count_d;
+        ready_q <= ready_d;
+    end 
 end
 endmodule
