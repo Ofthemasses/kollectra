@@ -10,7 +10,7 @@ init: build_kollectra_core
 dev: build-docker run-docker
 
 build_kollectra_core:
-	sbt "runMain kollectra.cores.GenKollectraCore";
+	sbt "runMain kollectra.GenKollectra";
 
 clean:
 	@echo "Removing $(SCALA_LIB_DIR)..."

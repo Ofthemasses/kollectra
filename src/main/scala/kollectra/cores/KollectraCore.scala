@@ -1,5 +1,6 @@
 package kollectra.cores
 
+import kollectra.blackboxes._
 import vexriscv.plugin._
 import vexriscv.{plugin, VexRiscv, VexRiscvConfig}
 import spinal.core._
@@ -7,7 +8,7 @@ import spinal.core._
 /**
  * Created by spinalvm on 15.06.17.
  */
-object GenKollectraCore extends App{
+object KollectraCore {
   def cpu() = new VexRiscv(
     config = VexRiscvConfig(
       plugins = List(
@@ -54,8 +55,4 @@ object GenKollectraCore extends App{
     )
   )
 
-  SpinalConfig(
-    targetDirectory = "generated",
-    mode = Verilog
-  ).generate(cpu())
 }
