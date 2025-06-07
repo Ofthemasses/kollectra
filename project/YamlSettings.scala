@@ -5,7 +5,7 @@ import org.yaml.snakeyaml.Yaml
 
 object ProjectConfig {
   def load(): JsonNode = {
-    val input = new FileInputStream(new File("../config.yaml"))
+    val input = new FileInputStream(new File("config.yaml"))
     val yaml = new Yaml()
     val mapper = new ObjectMapper().registerModules(DefaultScalaModule)
     val yamlObj = yaml.loadAs(input, classOf[Any])

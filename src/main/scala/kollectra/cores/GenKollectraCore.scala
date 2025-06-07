@@ -55,7 +55,7 @@ object GenKollectraCore extends App{
   )
 
   SpinalConfig(
-    targetDirectory = "../generated",
+    targetDirectory = "generated",
     mode = Verilog
   ).generate(cpu())
 }

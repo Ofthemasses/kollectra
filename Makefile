@@ -10,7 +10,6 @@ init: build_kollectra_core
 dev: build-docker run-docker
 
 build_kollectra_core:
-	cd vexcores; \
 	sbt "runMain kollectra.cores.GenKollectraCore";
 
 clean:
