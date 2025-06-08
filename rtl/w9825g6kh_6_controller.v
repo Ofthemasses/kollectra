@@ -5,8 +5,21 @@ module w9825g6kh_6_controller(
     input clk,
     input power,
 	input resetn,
-    output ready,
     output [3:0] currstate,
+
+	input cmd_valid,
+	output cmd_ready,
+	input [25:0] cmd_addr,
+	input cmd_we,
+	input [1:0] cmd_wstrb,
+
+	input wdata_valid,
+	output wdata_ready,
+	input [15:0] wdata,
+
+	output rdata_valid,
+	input rdata_ready,
+	output [15:0] rdata,
 
     output sdram_clk, // CK
     output sdram_cke, // CKE
@@ -80,7 +93,7 @@ reg [3:0] state_q, state_d = S_POWERDOWN;
 reg [3:0] next_state_q, next_state_d= S_POWERDOWN;
 reg [16:0] delay_count_q, delay_count_d = 0;
 
-reg ready_q, ready_d = 0;
+reg cmd_ready_q, cmd_ready_d = 0;
 reg [3:0] cmd_q, cmd_d = CMD_NOP;
 reg cke_q, cke_d = 0;
 reg [1:0] dqm_q, dqm_d = 0;
@@ -102,7 +115,7 @@ function  [12:0] mode_reg_set;
 endfunction
 
 assign sdram_clk = clk, // CK
-	   ready = ready_q,
+	   cmd_ready = cmd_ready_q,
        sdram_cke = cke_q, // CKE
        sdram_csn = cmd_q[3], // CS
        sdram_rasn = cmd_q[2], // RAS
@@ -123,7 +136,7 @@ always @* begin
     dqm_d = dqm_q;
     sdram_a_d = sdram_a_q;
     sdram_ba_d = sdram_ba_q;
-    ready_d = ready_q;
+    cmd_ready_d = cmd_ready_q;
     
     case(state_q)
         S_DELAY: begin
@@ -169,7 +182,7 @@ always @* begin
             next_state_d = S_IDLE;
         end
 		S_IDLE: begin
-		    ready_d = 1;	
+		    cmd_ready_d = 1;	
             cmd_d = CMD_AR;
             state_d = S_DESELECT_DELAY;
             delay_count_d = T_RC;
@@ -177,7 +190,7 @@ always @* begin
 		end
         S_POWERDOWN: begin
             cke_d = 0;
-            ready_d = 0;
+            cmd_ready_d = 0;
             state_d = S_INIT;
         end
     endcase
@@ -193,7 +206,7 @@ always @(posedge clk, negedge resetn) begin
         sdram_ba_q <= 0;
         next_state_q <= S_INIT;
         delay_count_q <= 0;
-        ready_q <= 0;
+        cmd_ready_q <= 0;
     end else begin
         state_q <= power ? state_d : S_POWERDOWN;
         cmd_q <= cmd_d;
@@ -203,7 +216,7 @@ always @(posedge clk, negedge resetn) begin
         sdram_ba_q <= sdram_ba_d;
         next_state_q <= next_state_d;
         delay_count_q <= delay_count_d;
-        ready_q <= ready_d;
+        cmd_ready_q <= cmd_ready_d;
     end 
 end
 endmodule
