@@ -4,21 +4,20 @@ import kollectra.blackboxes._
 import vexriscv.plugin._
 import vexriscv.{plugin, VexRiscv, VexRiscvConfig}
 import spinal.core._
+import spinal.lib.bus.amba4.axi._
+import spinal.lib._
 
-/**
- * Created by spinalvm on 15.06.17.
- */
-object KollectraCore {
-  def cpu() = new VexRiscv(
-    config = VexRiscvConfig(
+case class KollectraCore() extends Component {
+
+  val config = VexRiscvConfig(
       plugins = List(
         new IBusSimplePlugin(
           resetVector = 0x80000000l,
           cmdForkOnSecondStage = false,
-          cmdForkPersistence = false,
-          prediction = NONE,
-          catchAccessFault = false,
-          compressedGen = false
+          cmdForkPersistence = true,
+          prediction = STATIC,
+          catchAccessFault = true,
+          compressedGen = true
         ),
         new DBusSimplePlugin(
           catchAddressMisaligned = false,
@@ -53,6 +52,22 @@ object KollectraCore {
         )
       )
     )
-  )
+  val cpu = new VexRiscv(config)
 
+  val io = new Bundle {
+    val iBus = master(Axi4ReadOnly(IBusSimpleBus.getAxi4Config()))
+    val dBus = master(Axi4(DBusSimpleBus.getAxi4Config()))
+    val timerInterrupt = in Bool()
+    val externalInterrupt = in Bool()
+  }
+
+  for(plugin <- config.plugins) plugin match{
+    case plugin : IBusSimplePlugin => io.iBus <> plugin.iBus.toAxi4ReadOnly()
+    case plugin : DBusSimplePlugin => io.dBus <> plugin.dBus.toAxi4()
+    case plugin : CsrPlugin => {
+      plugin.timerInterrupt := io.timerInterrupt
+      plugin.externalInterrupt := io.externalInterrupt
+    }
+    case _ =>
+  }
 }
