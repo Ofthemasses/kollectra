@@ -9,7 +9,7 @@ module w9825g6kh_6_controller(
 
 	input cmd_valid,
 	output cmd_ready,
-	input [25:0] cmd_addr,
+	input [23:0] cmd_addr, // 23:22 bank, 21:9 row, 8:0 col
 	input cmd_we, // 1: Write, 0: Read
 	input [1:0] cmd_wstrb,
 
@@ -21,7 +21,6 @@ module w9825g6kh_6_controller(
 	input rdata_ready,
 	output [15:0] rdata,
 
-    output sdram_clk, // CK
     output sdram_cke, // CKE
     output sdram_csn, // CS
     output sdram_rasn, // RAS
@@ -112,8 +111,8 @@ reg [1:0] sdram_ba_q, sdram_ba_d = 0;
 
 reg [7:0] burst_counter_q, burst_counter_d = 0;
 
-reg [15:0] sdram_d_out;
-reg sdram_d_oe;
+reg [15:0] sdram_d_out_q, sdram_d_out_d = 0;
+reg sdram_d_oe_q, sdram_d_oe_d = 0;
 
 function  [12:0] mode_reg_set;
   input [2:0] burst_length;   // A2-A0
@@ -124,13 +123,12 @@ function  [12:0] mode_reg_set;
     mode_reg_set = 13'b0;
     mode_reg_set[2:0] = burst_length;
     mode_reg_set[3]   = burst_type;
-    mode_reg_set[6:4] = 3'b001;
+    mode_reg_set[6:4] = 3'b011;
     mode_reg_set[9]   = write_burst;
   end
 endfunction
 
-assign sdram_clk = clk, // CK
-	   cmd_ready = cmd_ready_q,
+assign cmd_ready = cmd_ready_q,
        sdram_cke = cke_q, // CKE
        sdram_csn = cmd_q[3], // CS
        sdram_rasn = cmd_q[2], // RAS
@@ -139,8 +137,11 @@ assign sdram_clk = clk, // CK
        sdram_a = sdram_a_q, // Address Lines
        sdram_ba = sdram_ba_q, // Bank Address Lines
        sdram_dqm = cmd_wstrb, // LDQM HDQM
-       sdram_d = sdram_d_oe ? sdram_d_out : 16'bz, // Data Lines
-       currstate = state_q;
+       sdram_d = sdram_d_oe_q ? sdram_d_out_q : 16'bz, // Data Lines
+       currstate = state_q,
+       wdata_ready = wdata_ready_q,
+       rdata_valid = rdata_valid_q,
+       rdata = rdata_q;
 
 always @* begin
     delay_count_d = delay_count_q;
@@ -156,12 +157,12 @@ always @* begin
     rdata_valid_d = rdata_valid_q;
     rdata_d = rdata_q;
     burst_counter_d = burst_counter_q;
-    sdram_d_oe = 0;
-    sdram_d_out = 16'b0;
+    sdram_d_oe_d = sdram_d_oe_q;
+    sdram_d_out_d = sdram_d_out_q;
     
     case(state_q)
         S_DELAY: begin
-            if (delay_count_d != 1) begin
+            if (delay_count_q > 1) begin
                 delay_count_d = delay_count_q - 1;
             end else begin
                 state_d = next_state_q;
@@ -169,7 +170,7 @@ always @* begin
         end
         S_DESELECT_DELAY: begin
             cmd_d[3] = 1;
-            if (delay_count_d != 1) begin
+            if (delay_count_q > 1) begin
                 delay_count_d = delay_count_q - 1;
             end else begin
                 state_d = next_state_q;
@@ -185,7 +186,7 @@ always @* begin
         S_PRECHARGE: begin
             cmd_d = CMD_PC;
             state_d = S_DELAY;
-            sdram_a_d = A10_PCA;
+            sdram_a_d[10] = A10_PCA;
             delay_count_d = T_RP;
             next_state_d = S_REFRESH1;
         end
@@ -210,14 +211,19 @@ always @* begin
             next_state_d = S_IDLE;
         end
 		S_IDLE: begin
-		    cmd_ready_d = 1;	
+            sdram_d_oe_d = 0;
+            sdram_d_out_d = 16'b0;
+			wdata_ready_d = 0;
+            rdata_valid_d = 0;	
             if (cmd_valid) begin
+				cmd_ready_d = 0;	
                 cmd_d = CMD_BA; // Activate bank
-                {sdram_ba_d, sdram_a_d} = cmd_addr[25:10]; // Select Bank and Row
+                {sdram_ba_d, sdram_a_d} = cmd_addr[23:9]; // Select Bank and Row
                 state_d = S_DESELECT_DELAY;
-                delay_count_d = T_RCD;
+                delay_count_d = T_RCD-1;
                 next_state_d = cmd_we ? S_WRITE : S_READ;
             end else begin
+				cmd_ready_d = 1;	
                 cmd_d = CMD_AR;
                 state_d = S_DESELECT_DELAY;
                 delay_count_d = T_RC;
@@ -226,46 +232,47 @@ always @* begin
 		end
         S_READ: begin
             cmd_d = CMD_R;
-            sdram_ba_d = cmd_addr[25:23];
+            sdram_ba_d = cmd_addr[23:22];
             sdram_a_d[10] = A10_RAP;
+            sdram_a_d[9:0] = cmd_addr[9:0];
             state_d = S_DESELECT_DELAY;
             delay_count_d = T_CL;
             next_state_d = S_READ_BURST;
             burst_counter_d = 7;
         end
         S_READ_BURST: begin
-            rdata_valid_d = 1;
-            if (rdata_ready) begin
-                rdata_d = sdram_d;
-                if (burst_counter_d == 0) begin
-                    rdata_valid_d = 0;
-                    state_d = S_IDLE;
-                end else begin
-                    burst_counter_d = burst_counter_q - 1;
-                end
+            rdata_valid_q = 1;
+            rdata_q = sdram_d;
+            if (burst_counter_d == 0) begin
+                rdata_valid_d = 0;
+                state_d = S_DESELECT_DELAY;
+                delay_count_d = T_RP + T_WR;
+                next_state_d = S_IDLE;
             end
+            burst_counter_d = burst_counter_q - 1;
         end
         S_WRITE: begin
-            cmd_d = CMD_W;
-            sdram_ba_d = cmd_addr[25:23];
-            sdram_a_d[10] = A10_WAP;
-            next_state_d = S_WRITE_BURST;
-            burst_counter_d = 6;
             wdata_ready_d = 1;
-            sdram_d_oe = 1;
-            sdram_d_out = wdata;
+            cmd_d = CMD_W;
+            sdram_ba_d = cmd_addr[23:22];
+            sdram_a_d[10] = A10_WAP;
+            sdram_a_d[8:0] = cmd_addr[8:0];
+            burst_counter_d = 6;
+            state_d = S_WRITE_BURST;
+            sdram_d_oe_d = 1;
+            sdram_d_out_d = wdata;
         end
         S_WRITE_BURST: begin
-            if (wdata_valid) begin
-                sdram_d_oe = 1;
-                sdram_d_out = wdata;
-                if (burst_counter_d == 0) begin
-                    wdata_ready_d = 0;
-                    state_d = S_IDLE;
-                end else begin
-                    burst_counter_d = burst_counter_q - 1;
-                end
+            cmd_d[3] = 1;
+            wdata_ready_d = 1;
+            sdram_d_oe_d = 1;
+            sdram_d_out_d = wdata;
+            if (burst_counter_q == 0) begin
+                state_d = S_DESELECT_DELAY;
+                delay_count_d = T_RP + T_WR;
+                next_state_d = S_IDLE;
             end
+            burst_counter_d = burst_counter_q - 1;
         end
         S_POWERDOWN: begin
             cke_d = 0;
@@ -290,6 +297,8 @@ always @(posedge clk, negedge resetn) begin
         rdata_valid_q <= 0;
         rdata_q <= 0;
         burst_counter_q <= 0;
+        sdram_d_oe_q <= 0;
+        sdram_d_out_q <= 16'b0;
     end else begin
         state_q <= power ? state_d : S_POWERDOWN;
         cmd_q <= cmd_d;
@@ -304,6 +313,8 @@ always @(posedge clk, negedge resetn) begin
         rdata_valid_q <= rdata_valid_d;
         rdata_q <= rdata_d;
         burst_counter_q <= burst_counter_d;
+        sdram_d_oe_q <= sdram_d_oe_d;
+        sdram_d_out_q <= sdram_d_out_d;
     end 
 end
 endmodule
