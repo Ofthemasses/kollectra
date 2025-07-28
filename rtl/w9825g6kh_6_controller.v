@@ -21,6 +21,7 @@ module w9825g6kh_6_controller(
 	input rdata_ready,
 	output [15:0] rdata,
 
+    output sdram_clk, // CLK
     output sdram_cke, // CKE
     output sdram_csn, // CS
     output sdram_rasn, // RAS
@@ -257,7 +258,7 @@ always @* begin
             sdram_ba_d = cmd_addr[23:22];
             sdram_a_d[10] = A10_WAP;
             sdram_a_d[8:0] = cmd_addr[8:0];
-            burst_counter_d = 6;
+            burst_counter_d = 7;
             state_d = S_WRITE_BURST;
             sdram_d_oe_d = 1;
             sdram_d_out_d = wdata;
@@ -268,6 +269,7 @@ always @* begin
             sdram_d_oe_d = 1;
             sdram_d_out_d = wdata;
             if (burst_counter_q == 0) begin
+                sdram_d_oe_d = 0;
                 state_d = S_DESELECT_DELAY;
                 delay_count_d = T_RP + T_WR;
                 next_state_d = S_IDLE;

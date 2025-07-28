@@ -11,17 +11,21 @@ module Top(
     output [1:0] sdram_ba,
     output [1:0] sdram_dqm,
     inout [15:0] sdram_d,
-    output [5:0] led
+    output [4:0] led
 );
 
     reg [3:0] reset_cnt = 15;
     wire resetn = (reset_cnt == 0);
-    always @(posedge clk_25mhz)
-        if (!resetn) reset_cnt <= reset_cnt - 1;
+    always @(posedge clk_25mhz) begin
+        if (!resetn) begin reset_cnt <= reset_cnt - 1; end
+        if (!sw) begin reset_cnt <= 15; end
+    end
 
     wire clk_165mhz;
     wire pll_locked;
     reg power_sync;
+
+    wire global_resetn = resetn & pll_locked;
 
     wire power = power_sync;
 
@@ -40,8 +44,8 @@ module Top(
     reg [15:0] rdata_latched = 0;
     reg success = 0;
 
-    always @(posedge clk_165mhz or negedge resetn) begin
-        if (!resetn) begin
+    always @(posedge clk_165mhz or negedge global_resetn) begin
+        if (!global_resetn) begin
             fsm <= 0;
             cmd_valid <= 0;
             wdata_valid <= 0;
@@ -128,14 +132,15 @@ module Top(
     );
 
     // PLL
-    pll_165 pll_inst (
+    pll_100 pll_inst (
         .clkin(clk_25mhz),
         .clkout0(clk_165mhz),
+        .clkout1(sdram_clk),
         .clklocked(pll_locked),
         .reset(!resetn)
     );
 
-    always @(posedge clk_25mhz or negedge resetn) begin
+    always @(posedge clk_25mhz, negedge resetn) begin
         if (!resetn)
             power_sync <= 0;
         else
@@ -144,13 +149,4 @@ module Top(
 
 	wire clk_ddr_out;
 
-	ODDRX1F ddr_clk_out (
-		.D0(1'b0),
-		.D1(1'b1),
-		.SCLK(clk_165mhz),
-		.RST(1'b0),
-		.Q(sdram_clk)
-	);
-
 endmodule
-

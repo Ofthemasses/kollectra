@@ -12,7 +12,7 @@ module pll_165
 
 wire locked;
 (* FREQUENCY_PIN_CLKI="25" *)
-(* FREQUENCY_PIN_CLKOP="165" *)
+(* FREQUENCY_PIN_CLKOP="165.625" *)
 (* ICP_CURRENT="12" *) (* LPF_RESISTOR="8" *) (* MFG_ENABLE_FILTEROPAMP="1" *) (* MFG_GMCREF_SEL="2" *)
 EHXPLLL #(
         .PLLRST_ENA("ENABLED"),
@@ -23,13 +23,13 @@ EHXPLLL #(
         .OUTDIVIDER_MUXB("DIVB"),
         .OUTDIVIDER_MUXC("DIVC"),
         .OUTDIVIDER_MUXD("DIVD"),
-        .CLKI_DIV(5),
+        .CLKI_DIV(8),
         .CLKOP_ENABLE("ENABLED"),
         .CLKOP_DIV(4),
-        .CLKOP_CPHASE(2),
+        .CLKOP_CPHASE(1),
         .CLKOP_FPHASE(0),
         .FEEDBK_PATH("CLKOP"),
-        .CLKFB_DIV(33)
+        .CLKFB_DIV(53)
     ) pll_i (
         .RST(reset),
         .STDBY(1'b0),

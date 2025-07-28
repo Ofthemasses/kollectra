@@ -1,4 +1,4 @@
-module pll_165 (
+module pll_100 (
     input reset,
     input clkin,
     output reg clkout0 = 0,
@@ -9,7 +9,7 @@ module pll_165 (
     assign #2.77 clkout1 = clkout0;
 
     always begin
-        #3.03 clkout0 = ~clkout0;
+        #5 clkout0 = ~clkout0;
     end
 endmodule
 

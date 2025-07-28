@@ -20,8 +20,7 @@ module Top(
 	wire resetn = (reset_cnt == 0);
 
 	always @(posedge clk_25mhz)
-		if (!resetn)
-			reset_cnt <= reset_cnt - 1;
+		if (!resetn) reset_cnt <= reset_cnt - 1;
 
 	reg power_sync;
     wire ready;
@@ -64,7 +63,7 @@ module Top(
         .sdram_d(sdram_d)
     );
 
-    pll_165 pll_inst (
+    pll_100 pll_inst (
         .clkin(clk_25mhz),
         .clkout0(clk_165mhz),
         .clklocked(pll_locked),
