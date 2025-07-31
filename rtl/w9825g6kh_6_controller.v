@@ -163,7 +163,7 @@ always @* begin
     
     case(state_q)
         S_DELAY: begin
-            if (delay_count_q > 1) begin
+            if (delay_count_d > 1) begin
                 delay_count_d = delay_count_q - 1;
             end else begin
                 state_d = next_state_q;
@@ -171,7 +171,7 @@ always @* begin
         end
         S_DESELECT_DELAY: begin
             cmd_d[3] = 1;
-            if (delay_count_q > 1) begin
+            if (delay_count_d > 1) begin
                 delay_count_d = delay_count_q - 1;
             end else begin
                 state_d = next_state_q;
@@ -237,13 +237,13 @@ always @* begin
             sdram_a_d[10] = A10_RAP;
             sdram_a_d[9:0] = cmd_addr[9:0];
             state_d = S_DESELECT_DELAY;
-            delay_count_d = T_CL;
+            delay_count_d = T_CL - 1;
             next_state_d = S_READ_BURST;
-            burst_counter_d = 7;
+            burst_counter_d = 8;
         end
         S_READ_BURST: begin
-            rdata_valid_q = 1;
-            rdata_q = sdram_d;
+            rdata_valid_d = 1;
+            rdata_d = sdram_d;
             if (burst_counter_d == 0) begin
                 rdata_valid_d = 0;
                 state_d = S_DESELECT_DELAY;
@@ -268,7 +268,7 @@ always @* begin
             wdata_ready_d = 1;
             sdram_d_oe_d = 1;
             sdram_d_out_d = wdata;
-            if (burst_counter_q == 0) begin
+            if (burst_counter_d == 0) begin
                 sdram_d_oe_d = 0;
                 state_d = S_DESELECT_DELAY;
                 delay_count_d = T_RP + T_WR;

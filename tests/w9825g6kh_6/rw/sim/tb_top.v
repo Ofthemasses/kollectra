@@ -8,7 +8,7 @@ module tb_top;
     wire [1:0] sdram_ba;
     wire [1:0] sdram_dqm;
 	wire [15:0] sdram_d;
-    wire [5:0] led;
+    wire [0:0] led;
 
     // Clock generation (40ns period = 25MHz)
     always #20 clk_25mhz = ~clk_25mhz;

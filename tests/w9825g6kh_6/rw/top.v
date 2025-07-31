@@ -11,7 +11,7 @@ module Top(
     output [1:0] sdram_ba,
     output [1:0] sdram_dqm,
     inout [15:0] sdram_d,
-    output [4:0] led
+    output [0:0] led
 );
 
     reg [3:0] reset_cnt = 15;
@@ -90,9 +90,9 @@ module Top(
                     fsm <= 7;
                 end
                 7: begin
-                    rdata_latched <= rdata;
-                    success <= (rdata == 16'hCAFE);
-                    if (rdata == 16'hCAFE) begin
+                    if (rdata_valid) begin
+                        rdata_latched <= rdata;
+                        success <= (rdata == 16'hCAFE);
                         fsm <= 8;
                     end
                 end
@@ -102,7 +102,7 @@ module Top(
         end
     end
 
-    assign led = {success, fsm};
+    assign led = {success};
 
     w9825g6kh_6_controller sdram_ctrl_inst (
         .clk(clk_165mhz),
@@ -132,7 +132,7 @@ module Top(
     );
 
     // PLL
-    pll_100 pll_inst (
+    pll_165 pll_inst (
         .clkin(clk_25mhz),
         .clkout0(clk_165mhz),
         .clkout1(sdram_clk),
