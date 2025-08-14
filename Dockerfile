@@ -1,7 +1,7 @@
 FROM alpine:3.21.3
 
 ENV SBT_VERSION="1.10.7"
-ENV OSS_VERSION="2025-02-17"
+ENV OSS_VERSION="2025-08-14"
 
 RUN apk add --no-cache \
     "curl=8.12.1-r1" \
