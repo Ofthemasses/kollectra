@@ -5,7 +5,6 @@ module w9825g6kh_6_controller(
     input clk,
     input power,
 	input resetn,
-    output [4:0] currstate,
 
 	input cmd_valid,
 	output cmd_ready,
@@ -139,7 +138,6 @@ assign cmd_ready = cmd_ready_q,
        sdram_ba = sdram_ba_q, // Bank Address Lines
        sdram_dqm = cmd_wstrb, // LDQM HDQM
        sdram_d = sdram_d_oe_q ? sdram_d_out_q : 16'bz, // Data Lines
-       currstate = state_q,
        wdata_ready = wdata_ready_q,
        rdata_valid = rdata_valid_q,
        rdata = rdata_q;
@@ -280,6 +278,8 @@ always @* begin
             cke_d = 0;
             cmd_ready_d = 0;
             state_d = S_INIT;
+        end
+        default: begin
         end
     endcase
 end

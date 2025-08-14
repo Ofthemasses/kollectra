@@ -42,4 +42,3 @@ class W9825G6KH6ControllerBlackBox extends BlackBox {
   noIoPrefix()
 
 }
-

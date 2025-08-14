@@ -15,7 +15,7 @@ case class KollectraCore() extends Component {
           resetVector = 0x80000000l,
           cmdForkOnSecondStage = false,
           cmdForkPersistence = true,
-          prediction = STATIC,
+          prediction = DYNAMIC_TARGET,
           catchAccessFault = true,
           compressedGen = true
         ),
@@ -34,7 +34,7 @@ case class KollectraCore() extends Component {
         new IntAluPlugin,
         new SrcPlugin(
           separatedAddSub = false,
-          executeInsertion = false
+          executeInsertion = true
         ),
         new LightShifterPlugin,
         new HazardSimplePlugin(
@@ -46,9 +46,11 @@ case class KollectraCore() extends Component {
           pessimisticWriteRegFile = false,
           pessimisticAddressMatch = false
         ),
+        new MulPlugin,
+        new DivPlugin,
         new BranchPlugin(
           earlyBranch = false,
-          catchAddressMisaligned = false
+          catchAddressMisaligned = true 
         )
       )
     )
