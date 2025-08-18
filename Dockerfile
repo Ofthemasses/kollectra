@@ -10,7 +10,10 @@ RUN apk add --no-cache \
     "make=4.4.1-r2" \
     "openjdk17-jdk=17.0.16_p8-r0" \
     "git=2.47.3-r0" \
-    "perl=5.40.3-r0"
+    "perl=5.40.3-r0"  \
+    "boost-dev=1.84.0-r2" \
+    "g++=14.2.0-r4" \
+    "iverilog-dev=12.0-r3"
 
 RUN curl -L https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz -o sbt.tgz && \
     tar -xzvf sbt.tgz -C /usr/local/ && \
