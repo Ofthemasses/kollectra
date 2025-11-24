@@ -21,4 +21,5 @@ build-docker:
 	docker build -t kollectra-dev .
 
 run-docker:
-	docker run -it --rm -v $(PWD):/project kollectra-dev
+    docker run --shm-size=1g -it --rm -v $(PWD):/project kollectra-dev
+
