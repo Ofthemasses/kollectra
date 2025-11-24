@@ -14,6 +14,7 @@ lazy val root = (project in file("."))
     name := "KollectraCores",
     libraryDependencies ++= Seq(
 	  "com.github.spinalhdl" %% "spinalhdl-core" % spinalVersion,
+	  "com.github.spinalhdl" %% "spinalhdl-sim" % spinalVersion,
       "com.github.spinalhdl" %% "spinalhdl-lib" % spinalVersion,
       compilerPlugin("com.github.spinalhdl" %% "spinalhdl-idsl-plugin" % spinalVersion),
     )
@@ -22,3 +23,11 @@ lazy val root = (project in file("."))
 lazy val vexRiscv = RootProject(uri(s"$vexRiscvRepo#$vexRiscvCommitHash"))
 
 fork := true
+
+Compile / run / javaOptions ++= {
+  val port = sys.props.getOrElse("debug.port", "5005")
+  if (sys.props.contains("debug"))
+    Seq(s"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:$port")
+  else
+    Nil
+}
