@@ -8,14 +8,20 @@ import spinal.lib.bus.amba4.axi._
 class W9825G6KH6AxiBridge extends Component {
   val io = new Bundle {
     val axi = slave(Axi4(Axi4Config(
-      addressWidth = 26,
-      dataWidth    = 32,
-      idWidth      = 4,
-      useLock      = false,
-      useRegion    = false,
-      useCache     = false,
-      useProt      = false,
-      useQos       = false
+		addressWidth = 26,
+		dataWidth    = 32,
+		idWidth      = 4,
+		useId        = true,
+		useRegion    = false,
+		useBurst     = true,
+		useLock      = false,
+		useCache     = false,
+		useProt      = false,
+		useQos       = false,
+		useLen       = true,
+		useSize      = true,
+		useLast      = true,
+		useResp      = true
     )))
 
     val sdramCtrl = new Bundle {
@@ -39,7 +45,7 @@ class W9825G6KH6AxiBridge extends Component {
 
 
   object State extends SpinalEnum {
-    val Idle, WaitWriteData, WriteLo, WriteHi, WriteResp, ReadCmd, ReadWait, ReadResp = newElement()
+    val Idle, StartWrite, WriteLo, WriteHi, WriteResp, ReadCmd, ReadWait, ReadResp = newElement()
   }
   val state = RegInit(State.Idle)
 
@@ -52,6 +58,8 @@ class W9825G6KH6AxiBridge extends Component {
   val readId     = Reg(UInt(4 bits))
   val readLo     = Reg(UInt(16 bits))
   val readingHi  = Reg(Bool()) init(False)
+
+  val burstCounter = Reg(UInt(4 bits))
 
   io.sdramCtrl.cmd.valid := False
   io.sdramCtrl.cmd.addr  := 0
@@ -76,56 +84,52 @@ class W9825G6KH6AxiBridge extends Component {
 
   switch(state) {
     is(State.Idle) {
-      io.axi.ar.ready := True
-      io.axi.aw.ready := True
-      io.axi.w.ready  := True
+      when (io.sdramCtrl.cmd.ready){
+        io.axi.ar.ready := True
+        io.axi.aw.ready := True
+        io.axi.w.ready  := True
+      }
 
       when(io.axi.aw.fire && io.axi.w.fire) {
-        writeAddr := io.axi.aw.addr
-        writeData := io.axi.w.data
-        writeStrb := io.axi.w.strb
-        writeId   := io.axi.aw.id
-        state := State.WriteLo
+        state := State.StartWrite
       } elsewhen(io.axi.ar.fire) {
-        readAddr := io.axi.ar.addr
-        readId := io.axi.ar.id
         state := State.ReadCmd
       }
     }
 
-    is(State.WriteLo) {
+    is(State.StartWrite) {
+      writeAddr := io.axi.aw.addr
+      writeData := io.axi.w.data
+      writeStrb := io.axi.w.strb
+      writeId   := io.axi.aw.id
       when(io.sdramCtrl.cmd.ready) {
         io.sdramCtrl.cmd.valid := True
         io.sdramCtrl.cmd.addr := writeAddr
         io.sdramCtrl.cmd.we := True
-        io.sdramCtrl.cmd.wstrb := writeStrb(1 downto 0).asUInt
-
-        io.sdramCtrl.wdata := writeData(15 downto 0).asUInt
-        io.sdramCtrl.wdata_valid := True
-
-        when(io.sdramCtrl.wdata_ready) {
-          when (writeStrb(3 downto 2).orR) {
-            state := State.WriteHi
-          } otherwise {
-            state := State.WriteResp
-          }
-        }
+      } elsewhen (io.sdramCtrl.wdata_ready) {
+        burstCounter := 3
+        state := State.WriteLo
       }
     }
 
+    is(State.WriteLo) {
+      io.sdramCtrl.cmd.wstrb := ~writeStrb(1 downto 0).asUInt
+
+      io.sdramCtrl.wdata := writeData(15 downto 0).asUInt
+      io.sdramCtrl.wdata_valid := True
+      state := State.WriteHi
+    }
+
     is(State.WriteHi) {
-      when(io.sdramCtrl.cmd.ready) {
-        io.sdramCtrl.cmd.valid := True
-        io.sdramCtrl.cmd.addr := writeAddr | U(2)
-        io.sdramCtrl.cmd.we := True
-        io.sdramCtrl.cmd.wstrb := writeStrb(3 downto 2).asUInt
+      when(burstCounter === 0){
+        state := State.WriteResp
+      } otherwise {
+        io.sdramCtrl.cmd.wstrb := ~writeStrb(3 downto 2).asUInt
 
         io.sdramCtrl.wdata := writeData(31 downto 16).asUInt
         io.sdramCtrl.wdata_valid := True
-
-        when(io.sdramCtrl.wdata_ready) {
-          state := State.WriteResp
-        }
+        burstCounter := burstCounter - 1
+        state := State.WriteLo
       }
     }
 
@@ -137,6 +141,8 @@ class W9825G6KH6AxiBridge extends Component {
     }
 
     is(State.ReadCmd) {
+      readAddr := io.axi.ar.addr
+      readId := io.axi.ar.id
       when(io.sdramCtrl.cmd.ready) {
         io.sdramCtrl.cmd.valid := True
         io.sdramCtrl.cmd.addr := readAddr
@@ -146,6 +152,7 @@ class W9825G6KH6AxiBridge extends Component {
     }
 
     is(State.ReadWait) {
+      io.sdramCtrl.cmd.valid := True
       io.sdramCtrl.rdata_ready := True
       when(io.sdramCtrl.rdata_valid) {
         readLo := io.sdramCtrl.rdata

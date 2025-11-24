@@ -24,7 +24,7 @@ object KollectraSim {
         sleep(50)
         dut.io.resetn #= true
 
-        sleep(50000)
+        sleep(1000000)
       }
   }
 }
