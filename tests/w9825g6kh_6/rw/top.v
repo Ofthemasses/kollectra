@@ -30,7 +30,6 @@ module Top(
     wire power = power_sync;
 
     // SDRAM I/O and interface wires
-    wire [4:0] currstate;
     wire cmd_ready, wdata_ready, rdata_valid;
     reg cmd_valid = 0, wdata_valid = 0;
     reg cmd_we = 0;
@@ -56,8 +55,8 @@ module Top(
             success <= 0;
         end else begin
             case (fsm)
-                0: if (currstate == 5'b01110) begin 
-					fsm <= 1; // Wait for IDLE
+                0: begin 
+					fsm <= 1;
                     cmd_wstrb <= 2'b00;
                 end
                 1: if (cmd_ready) begin
@@ -92,7 +91,7 @@ module Top(
                 7: begin
                     if (rdata_valid) begin
                         rdata_latched <= rdata;
-                        success <= (rdata == 16'hCAFE);
+                        success <= (rdata == 16'hCAFE) ? 1 : 0;
                         fsm <= 8;
                     end
                 end
@@ -108,7 +107,6 @@ module Top(
         .clk(clk_165mhz),
         .power(power_sync),
         .resetn(resetn),
-        .currstate(currstate),
         .cmd_valid(cmd_valid),
         .cmd_ready(cmd_ready),
         .cmd_addr(cmd_addr),
