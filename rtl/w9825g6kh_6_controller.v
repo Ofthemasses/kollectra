@@ -235,7 +235,7 @@ always @* begin
             sdram_a_d[10] = A10_RAP;
             sdram_a_d[9:0] = cmd_addr[9:0];
             state_d = S_DESELECT_DELAY;
-            delay_count_d = T_CL - 1;
+            delay_count_d = T_CL;
             next_state_d = S_READ_BURST;
             burst_counter_d = 8;
         end
